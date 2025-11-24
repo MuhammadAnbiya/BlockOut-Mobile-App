@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+//generator client {
+//  provider = "prisma-client"
+//  output   = "../generated/prisma"
+//}
+
+//datasource db {
+//  provider = "postgresql"
+//}
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int       @id @default(autoincrement())
+  username       String    @unique
+  email          String    @unique
+  passwordHash   String
+  walletAddress  String?
+  phoneNumber    String?
+  
+  // !!! UPDATE: MENGGUNAKAN DECIMAL UNTUK PRESISI KRIPTO !!!
+  coinsBalance   Decimal   @default(0.0) @db.Decimal(18, 2)
+  
+  dayStreak      Int       @default(0)
+  lastWorkout    DateTime?
+  totalWorkouts  Int       @default(0)
+
+  avatarGender   String    @default("MALE")
+  equippedTop    String    @default("default_hair")
+  equippedShirt  String    @default("default_shirt")
+  equippedPants  String    @default("default_pants")
+  equippedShoes  String    @default("default_shoes")
+
+  blockedApps       BlockedApp[]
+  inventory         Inventory[]
+  workoutPrefs      WorkoutPreference[]
+  transactionQueue  TransactionQueue[]
+  purchases         PurchaseHistory[]
+  createdAt         DateTime  @default(now())
+}
+
+model BlockedApp {
+  id        Int     @id @default(autoincrement())
+  userId    Int
+  appName   String
+  isActive  Boolean @default(true)
+  user      User    @relation(fields: [userId], references: [id])
+}
+
+model WorkoutPreference {
+  id        Int     @id @default(autoincrement())
+  userId    Int
+  type      String
+  target    Int
+  isEnabled Boolean @default(true)
+  user      User    @relation(fields: [userId], references: [id])
+}
+
+model Inventory {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  itemId    String
+  itemType  String
+  isOwned   Boolean  @default(true)
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+// !!! NEW: TABEL ANTRIAN TRANSAKSI MINTING !!!
+model TransactionQueue {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  walletAddress String
+  amount        String
+  workoutType   String
+  status        String   @default("PENDING")
+  txHash        String?
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+// !!! NEW: TABEL RIWAYAT PEMBELIAN UNTUK ANTI-REPLAY !!!
+model PurchaseHistory {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  itemId    String
+  txHash    String   @unique
+  amount    String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+}
+
