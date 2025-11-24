@@ -1,14 +1,11 @@
-import prisma from '../../../lib/prisma'; // FIX: Import dari lib
+import prisma from '../../../lib/prisma';
 import { ethers } from 'ethers';
 import { authMiddleware } from '../../../middleware/authMiddleware';
 import { provider } from '../../../lib/web3';
-
-const ITEM_PRICES = {
-  "skin_dragon": "500",
-  "skin_robot": "1000"
-};
+import { SHOP_CATALOG } from '../../../lib/shopCatalog';
 
 const ADMIN_WALLET = process.env.ADMIN_WALLET_ADDRESS ? process.env.ADMIN_WALLET_ADDRESS.toLowerCase() : "";
+const TOKEN_CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS ? process.env.CONTRACT_ADDRESS.toLowerCase() : "";
 
 async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
@@ -18,49 +15,82 @@ async function handler(req, res) {
 
   if (!txHash || !itemId) return res.status(400).json({ error: 'Missing data' });
 
+  // 1. Cek Item di Catalog
+  const itemData = SHOP_CATALOG[itemId];
+  if (!itemData) return res.status(400).json({ error: 'Item not found in catalog' });
+
   try {
+    // 2. Cek apakah hash sudah pernah dipakai (Anti-Replay)
     const existingPurchase = await prisma.purchaseHistory.findUnique({
       where: { txHash: txHash }
     });
+    if (existingPurchase) return res.status(409).json({ error: 'Transaction hash already used' });
 
-    if (existingPurchase) {
-      return res.status(409).json({ error: 'Transaction hash already used' });
-    }
-
-    const tx = await provider.getTransaction(txHash);
-    if (!tx) return res.status(404).json({ error: 'Transaction not found' });
-
+    // 3. Ambil Receipt Transaksi dari Blockchain
     const receipt = await provider.getTransactionReceipt(txHash);
+    
     if (!receipt || receipt.status !== 1) {
       return res.status(400).json({ error: 'Transaction failed or pending' });
     }
+    
+    const iface = new ethers.Interface([
+      "event Transfer(address indexed from, address indexed to, uint256 value)"
+    ]);
 
-    if (tx.to.toLowerCase() !== ADMIN_WALLET) {
-      return res.status(400).json({ error: 'Invalid recipient address' });
+    const log = receipt.logs.find(l => l.address.toLowerCase() === TOKEN_CONTRACT_ADDRESS);
+
+    if (!log) {
+      return res.status(400).json({ error: 'No BLOC Token transfer found in this transaction' });
     }
 
-    const expectedPrice = ITEM_PRICES[itemId];
-    if (!expectedPrice) return res.status(400).json({ error: 'Invalid Item ID' });
+    const parsedLog = iface.parseLog(log);
+    const from = parsedLog.args[0];
+    const to = parsedLog.args[1];
+    const value = parsedLog.args[2];
 
-    const valueSent = ethers.formatUnits(tx.value, 18); 
-    if (parseFloat(valueSent) < parseFloat(expectedPrice)) {
-       return res.status(400).json({ error: 'Insufficient payment amount' });
+    // 4. Validasi Penerima (Harus Admin)
+    if (to.toLowerCase() !== ADMIN_WALLET) {
+      return res.status(400).json({ error: `Invalid recipient. Sent to ${to}, expected Admin` });
     }
 
+    // 5. Validasi Jumlah Token (Value >= Harga Item)
+    const priceInWei = ethers.parseUnits(itemData.price.toString(), 18);
+    
+    if (value < priceInWei) {
+      const sentReadable = ethers.formatUnits(value, 18);
+      return res.status(400).json({ 
+        error: `Insufficient payment. Sent ${sentReadable} BLOC, needed ${itemData.price} BLOC` 
+      });
+    }
+
+    // 6. Jika Valid, Buka Item di Database
     await prisma.$transaction([
       prisma.purchaseHistory.create({
-        data: { userId, itemId, txHash, amount: valueSent }
+        data: { 
+            userId, 
+            itemId, 
+            txHash, 
+            amount: ethers.formatUnits(value, 18) 
+        }
       }),
-      prisma.inventory.create({
-        data: { userId, itemId, itemType: 'SHIRT', isOwned: true }
+
+      prisma.inventory.upsert({
+        where: { userId_itemId: { userId, itemId } }, 
+        create: {
+            userId, 
+            itemId, 
+            itemType: itemData.type, 
+            isOwned: true
+        },
+        update: {}
       })
     ]);
 
-    res.status(200).json({ success: true, message: 'Item Unlocked!' });
+    res.status(200).json({ success: true, message: `Payment verified! ${itemData.name} Unlocked.` });
 
   } catch (error) {
     console.error("Verify Error:", error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: 'Verification failed. Make sure txHash is correct.' });
   }
 }
 

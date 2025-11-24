@@ -1,18 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-//generator client {
-//  provider = "prisma-client"
-//  output   = "../generated/prisma"
-//}
-
-//datasource db {
-//  provider = "postgresql"
-//}
-
+// prisma/schema.prisma
 
 generator client {
   provider = "prisma-client-js"
@@ -31,24 +17,28 @@ model User {
   walletAddress  String?
   phoneNumber    String?
   
-  // !!! UPDATE: MENGGUNAKAN DECIMAL UNTUK PRESISI KRIPTO !!!
+  // Saldo Koin (Decimal untuk presisi)
   coinsBalance   Decimal   @default(0.0) @db.Decimal(18, 2)
   
+  // Statistik Game
   dayStreak      Int       @default(0)
   lastWorkout    DateTime?
   totalWorkouts  Int       @default(0)
 
+  // Konfigurasi Avatar (Yang dipakai sekarang)
   avatarGender   String    @default("MALE")
-  equippedTop    String    @default("default_hair")
-  equippedShirt  String    @default("default_shirt")
-  equippedPants  String    @default("default_pants")
-  equippedShoes  String    @default("default_shoes")
+  equippedTop    String    @default("starter_hair")
+  equippedShirt  String    @default("starter_shirt")
+  equippedPants  String    @default("starter_pants")
+  equippedShoes  String    @default("starter_shoes")
 
+  // Relasi ke tabel lain
   blockedApps       BlockedApp[]
   inventory         Inventory[]
   workoutPrefs      WorkoutPreference[]
   transactionQueue  TransactionQueue[]
   purchases         PurchaseHistory[]
+  
   createdAt         DateTime  @default(now())
 }
 
@@ -72,20 +62,23 @@ model WorkoutPreference {
 model Inventory {
   id        Int      @id @default(autoincrement())
   userId    Int
-  itemId    String
-  itemType  String
+  itemId    String   // ID unik item (misal: "hat_cowboy")
+  itemType  String   // TOP, SHIRT, PANTS, SHOES
   isOwned   Boolean  @default(true)
   user      User     @relation(fields: [userId], references: [id])
+
+  // UPDATE PENTING: Mencegah duplikasi item yang sama untuk satu user
+  @@unique([userId, itemId])
 }
 
-// !!! NEW: TABEL ANTRIAN TRANSAKSI MINTING !!!
+// Tabel Antrian untuk Worker Blockchain (Minting)
 model TransactionQueue {
   id            Int      @id @default(autoincrement())
   userId        Int
   walletAddress String
   amount        String
   workoutType   String
-  status        String   @default("PENDING")
+  status        String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
   txHash        String?
   errorMessage  String?
   createdAt     DateTime @default(now())
@@ -94,15 +87,14 @@ model TransactionQueue {
   user          User     @relation(fields: [userId], references: [id])
 }
 
-// !!! NEW: TABEL RIWAYAT PEMBELIAN UNTUK ANTI-REPLAY !!!
+// Tabel Riwayat Pembelian (Mencegah Replay Attack)
 model PurchaseHistory {
   id        Int      @id @default(autoincrement())
   userId    Int
   itemId    String
-  txHash    String   @unique
+  txHash    String   @unique // Hash transaksi tidak boleh dipakai 2x
   amount    String
   createdAt DateTime @default(now())
   
   user      User     @relation(fields: [userId], references: [id])
 }
-
