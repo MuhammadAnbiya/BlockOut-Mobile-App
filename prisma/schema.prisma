@@ -17,7 +17,11 @@ model User {
   birthDate      DateTime? 
   phoneNumber    String?   @unique
   passwordHash   String?   
-  avatarUrl      String?   // [BARU] Untuk menyimpan foto profil dari Google
+  avatarUrl      String?   // URL foto profil dari Google
+  
+  // --- TAMBAHAN UNTUK PERSONALIZATION UI ---
+  heightCm       Int?      // Tinggi user dalam cm
+  weightKg       Int?      // Berat user dalam kg
   
   // Web3 & Game Stats
   walletAddress  String?
@@ -49,6 +53,9 @@ model BlockedApp {
   appName   String
   isActive  Boolean @default(true)
   user      User    @relation(fields: [userId], references: [id])
+  
+  // Mencegah duplikasi entri blokir
+  @@unique([userId, appName]) 
 }
 
 model WorkoutPreference {
@@ -63,12 +70,12 @@ model WorkoutPreference {
 model Inventory {
   id        Int      @id @default(autoincrement())
   userId    Int
-  itemId    String   // ID unik item (misal: "hat_cowboy")
-  itemType  String   // TOP, SHIRT, PANTS, SHOES
+  itemId    String
+  itemType  String
   isOwned   Boolean  @default(true)
   user      User     @relation(fields: [userId], references: [id])
 
-  // Mencegah duplikasi item yang sama untuk satu user
+  // Mencegah duplikasi item yang sama
   @@unique([userId, itemId])
 }
 
@@ -79,7 +86,7 @@ model TransactionQueue {
   walletAddress String
   amount        String
   workoutType   String
-  status        String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  status        String   @default("PENDING") 
   txHash        String?
   errorMessage  String?
   createdAt     DateTime @default(now())
@@ -93,7 +100,7 @@ model PurchaseHistory {
   id        Int      @id @default(autoincrement())
   userId    Int
   itemId    String
-  txHash    String   @unique // Hash transaksi tidak boleh dipakai 2x
+  txHash    String   @unique
   amount    String
   createdAt DateTime @default(now())
   
