@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,22 +10,24 @@ datasource db {
 model User {
   id             Int       @id @default(autoincrement())
   
+  // Data Diri
   firstName      String
   lastName       String
-  birthDate      DateTime
-
   email          String    @unique
-  passwordHash   String
+  birthDate      DateTime? 
   phoneNumber    String?   @unique
-  walletAddress  String?
+  passwordHash   String?   
+  avatarUrl      String?   // [BARU] Untuk menyimpan foto profil dari Google
   
-  // Saldo & Stats
+  // Web3 & Game Stats
+  walletAddress  String?
   coinsBalance   Decimal   @default(0.0) @db.Decimal(18, 2)
   dayStreak      Int       @default(0)
   lastWorkout    DateTime?
   totalWorkouts  Int       @default(0)
 
-  avatarGender   String    @default("MALE") 
+  // Avatar Config
+  avatarGender   String    @default("MALE")
   equippedTop    String    @default("starter_hair")
   equippedShirt  String    @default("starter_shirt")
   equippedPants  String    @default("starter_pants")
@@ -68,7 +68,7 @@ model Inventory {
   isOwned   Boolean  @default(true)
   user      User     @relation(fields: [userId], references: [id])
 
-  // UPDATE PENTING: Mencegah duplikasi item yang sama untuk satu user
+  // Mencegah duplikasi item yang sama untuk satu user
   @@unique([userId, itemId])
 }
 
