@@ -1,4 +1,4 @@
-import prisma from '../../../lib/prisma'; // FIX: Import dari lib
+import prisma from '../../../lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -6,6 +6,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const { email, password } = req.body;
+
   try {
     const user = await prisma.user.findUnique({ where: { email } });
 
@@ -25,12 +26,15 @@ export default async function handler(req, res) {
       token,
       user: {
         id: user.id,
-        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName, 
+        email: user.email,
         walletAddress: user.walletAddress,
         dayStreak: user.dayStreak
       }
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Something went wrong' });
   }
 }

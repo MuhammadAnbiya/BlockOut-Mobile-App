@@ -11,28 +11,29 @@ datasource db {
 
 model User {
   id             Int       @id @default(autoincrement())
-  username       String    @unique
+  
+  firstName      String
+  lastName       String
+  birthDate      DateTime
+
   email          String    @unique
   passwordHash   String
+  phoneNumber    String?   @unique
   walletAddress  String?
-  phoneNumber    String?
   
-  // Saldo Koin (Decimal untuk presisi)
+  // Saldo & Stats
   coinsBalance   Decimal   @default(0.0) @db.Decimal(18, 2)
-  
-  // Statistik Game
   dayStreak      Int       @default(0)
   lastWorkout    DateTime?
   totalWorkouts  Int       @default(0)
 
-  // Konfigurasi Avatar (Yang dipakai sekarang)
-  avatarGender   String    @default("MALE")
+  avatarGender   String    @default("MALE") 
   equippedTop    String    @default("starter_hair")
   equippedShirt  String    @default("starter_shirt")
   equippedPants  String    @default("starter_pants")
   equippedShoes  String    @default("starter_shoes")
 
-  // Relasi ke tabel lain
+  // Relasi
   blockedApps       BlockedApp[]
   inventory         Inventory[]
   workoutPrefs      WorkoutPreference[]
