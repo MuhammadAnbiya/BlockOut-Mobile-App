@@ -19,7 +19,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Cek Duplikat (Email atau No HP)
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [{ email }, { phoneNumber }]
@@ -30,10 +29,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Email or Phone Number already registered' });
     }
 
-    // 2. Hash Password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3. Create User di DB
     const user = await prisma.user.create({
       data: {
         firstName,
@@ -51,7 +48,6 @@ export default async function handler(req, res) {
       }
     });
 
-    // 4. Generate Token (Auto Login)
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     res.status(201).json({ 

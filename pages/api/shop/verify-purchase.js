@@ -15,18 +15,15 @@ async function handler(req, res) {
 
   if (!txHash || !itemId) return res.status(400).json({ error: 'Missing data' });
 
-  // 1. Cek Item di Catalog
   const itemData = SHOP_CATALOG[itemId];
   if (!itemData) return res.status(400).json({ error: 'Item not found in catalog' });
 
   try {
-    // 2. Cek apakah hash sudah pernah dipakai (Anti-Replay)
     const existingPurchase = await prisma.purchaseHistory.findUnique({
       where: { txHash: txHash }
     });
     if (existingPurchase) return res.status(409).json({ error: 'Transaction hash already used' });
 
-    // 3. Ambil Receipt Transaksi dari Blockchain
     const receipt = await provider.getTransactionReceipt(txHash);
     
     if (!receipt || receipt.status !== 1) {
@@ -48,12 +45,10 @@ async function handler(req, res) {
     const to = parsedLog.args[1];
     const value = parsedLog.args[2];
 
-    // 4. Validasi Penerima (Harus Admin)
     if (to.toLowerCase() !== ADMIN_WALLET) {
       return res.status(400).json({ error: `Invalid recipient. Sent to ${to}, expected Admin` });
     }
 
-    // 5. Validasi Jumlah Token (Value >= Harga Item)
     const priceInWei = ethers.parseUnits(itemData.price.toString(), 18);
     
     if (value < priceInWei) {
@@ -63,7 +58,6 @@ async function handler(req, res) {
       });
     }
 
-    // 6. Jika Valid, Buka Item di Database
     await prisma.$transaction([
       prisma.purchaseHistory.create({
         data: { 

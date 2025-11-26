@@ -10,7 +10,6 @@ datasource db {
 model User {
   id             Int       @id @default(autoincrement())
   
-  // Data Diri
   firstName      String
   lastName       String
   email          String    @unique
@@ -19,25 +18,21 @@ model User {
   passwordHash   String?   
   avatarUrl      String?   // URL foto profil dari Google
   
-  // --- TAMBAHAN UNTUK PERSONALIZATION UI ---
   heightCm       Int?      // Tinggi user dalam cm
   weightKg       Int?      // Berat user dalam kg
   
-  // Web3 & Game Stats
   walletAddress  String?
   coinsBalance   Decimal   @default(0.0) @db.Decimal(18, 2)
   dayStreak      Int       @default(0)
   lastWorkout    DateTime?
   totalWorkouts  Int       @default(0)
 
-  // Avatar Config
   avatarGender   String    @default("MALE")
   equippedTop    String    @default("starter_hair")
   equippedShirt  String    @default("starter_shirt")
   equippedPants  String    @default("starter_pants")
   equippedShoes  String    @default("starter_shoes")
 
-  // Relasi
   blockedApps       BlockedApp[]
   inventory         Inventory[]
   workoutPrefs      WorkoutPreference[]
@@ -54,7 +49,6 @@ model BlockedApp {
   isActive  Boolean @default(true)
   user      User    @relation(fields: [userId], references: [id])
   
-  // Mencegah duplikasi entri blokir
   @@unique([userId, appName]) 
 }
 
@@ -75,11 +69,9 @@ model Inventory {
   isOwned   Boolean  @default(true)
   user      User     @relation(fields: [userId], references: [id])
 
-  // Mencegah duplikasi item yang sama
   @@unique([userId, itemId])
 }
 
-// Tabel Antrian untuk Worker Blockchain (Minting)
 model TransactionQueue {
   id            Int      @id @default(autoincrement())
   userId        Int
@@ -95,7 +87,6 @@ model TransactionQueue {
   user          User     @relation(fields: [userId], references: [id])
 }
 
-// Tabel Riwayat Pembelian (Mencegah Replay Attack)
 model PurchaseHistory {
   id        Int      @id @default(autoincrement())
   userId    Int

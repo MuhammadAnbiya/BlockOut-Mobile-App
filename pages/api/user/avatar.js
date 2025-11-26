@@ -39,7 +39,6 @@ async function handler(req, res) {
     if (!itemId || !category) return res.status(400).json({ error: 'Missing itemId or category' });
 
     try {
-      // 1. Cek apakah user BENAR-BENAR punya item ini? (Security)
       if (!itemId.startsWith("starter_")) {
           const hasItem = await prisma.inventory.findFirst({
             where: { userId, itemId }
@@ -47,7 +46,6 @@ async function handler(req, res) {
           if (!hasItem) return res.status(403).json({ error: 'You do not own this item!' });
       }
 
-      // 2. Tentukan kolom mana yang mau diupdate di DB
       let updateData = {};
       if (category === 'TOP') updateData.equippedTop = itemId;
       else if (category === 'SHIRT') updateData.equippedShirt = itemId;
@@ -55,7 +53,6 @@ async function handler(req, res) {
       else if (category === 'SHOES') updateData.equippedShoes = itemId;
       else return res.status(400).json({ error: 'Invalid category' });
 
-      // 3. Update DB
       await prisma.user.update({
         where: { id: userId },
         data: updateData

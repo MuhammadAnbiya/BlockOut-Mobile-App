@@ -17,7 +17,6 @@ async function handler(req, res) {
   try {
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
-    // Rate Limiting
     const now = new Date();
     if (user.lastWorkout) {
       const lastActive = new Date(user.lastWorkout);
@@ -30,13 +29,11 @@ async function handler(req, res) {
       }
     }
 
-    // Anti-Cheat Duration
     const timePerRep = duration / count;
     if (timePerRep < MIN_SEC_PER_REP) {
       return res.status(400).json({ error: 'Workout rejected: Too fast' });
     }
 
-    // Streak Logic
     let newStreak = user.dayStreak;
     const lastWorkout = user.lastWorkout ? new Date(user.lastWorkout) : null;
 
@@ -52,7 +49,6 @@ async function handler(req, res) {
     const streakMultiplier = 1 + (Math.min(newStreak, 30) / 100); 
     const baseReward = Math.floor(count * 1 * streakMultiplier);
 
-    // Queue Transaction
     await prisma.$transaction([
       prisma.user.update({
         where: { id: userId },

@@ -27,7 +27,7 @@ async function handler(req, res) {
         where: { 
             userId_appName: { userId, appName } 
         },
-        update: { isActive: true }, // Pastikan aktif
+        update: { isActive: true },
         create: {
           userId,
           appName,
