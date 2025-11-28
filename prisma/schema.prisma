@@ -16,10 +16,10 @@ model User {
   birthDate      DateTime? 
   phoneNumber    String?   @unique
   passwordHash   String?   
-  avatarUrl      String?   // URL foto profil dari Google
+  avatarUrl      String?   
   
-  heightCm       Int?      // Tinggi user dalam cm
-  weightKg       Int?      // Berat user dalam kg
+  heightCm       Int?      
+  weightKg       Int?      
   
   walletAddress  String?
   coinsBalance   Decimal   @default(0.0) @db.Decimal(18, 2)
@@ -32,6 +32,9 @@ model User {
   equippedShirt  String    @default("starter_shirt")
   equippedPants  String    @default("starter_pants")
   equippedShoes  String    @default("starter_shoes")
+
+  resetToken       String?
+  resetTokenExpiry DateTime?
 
   blockedApps       BlockedApp[]
   inventory         Inventory[]
