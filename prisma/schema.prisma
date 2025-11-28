@@ -36,6 +36,8 @@ model User {
   resetToken       String?
   resetTokenExpiry DateTime?
 
+  notificationEnabled Boolean   @default(true)
+
   blockedApps       BlockedApp[]
   inventory         Inventory[]
   workoutPrefs      WorkoutPreference[]
