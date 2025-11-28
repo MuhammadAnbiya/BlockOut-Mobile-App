@@ -1,6 +1,5 @@
 import prisma from '../../../lib/prisma';
 import { authMiddleware } from '../../../middleware/authMiddleware';
-import { SHOP_CATALOG } from '../../../lib/shopCatalog';
 
 async function handler(req, res) {
   const userId = req.user.userId;
@@ -13,6 +12,10 @@ async function handler(req, res) {
       });
 
       const responseData = {
+        userProfile: {
+            name: `${user.firstName} ${user.lastName}`, 
+            avatarUrl: user.avatarUrl || "", 
+        },
         equipped: {
             top: user.equippedTop,
             shirt: user.equippedShirt,
@@ -29,6 +32,7 @@ async function handler(req, res) {
 
       return res.status(200).json(responseData);
     } catch (error) {
+      console.error(error);
       return res.status(500).json({ error: 'Failed to fetch avatar data' });
     }
   }
@@ -61,6 +65,7 @@ async function handler(req, res) {
       return res.status(200).json({ success: true, message: 'Avatar updated!' });
 
     } catch (error) {
+      console.error(error);
       return res.status(500).json({ error: 'Failed to equip item' });
     }
   }
