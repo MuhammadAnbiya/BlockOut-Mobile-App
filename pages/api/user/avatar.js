@@ -1,5 +1,13 @@
 import prisma from '../../../lib/prisma';
 import { authMiddleware } from '../../../middleware/authMiddleware';
+import { SHOP_CATALOG } from '../../../lib/shopCatalog'
+
+const STARTER_ITEMS = [
+  { id: "starter_hair", name: "Red Hair", type: "TOP" },
+  { id: "starter_shirt", name: "Basic Shirt", type: "SHIRT" },
+  { id: "starter_pants", name: "Blue Shorts", type: "PANTS" },
+  { id: "starter_shoes", name: "Black Sneakers", type: "SHOES" }
+];
 
 async function handler(req, res) {
   const userId = req.user.userId;
@@ -11,10 +19,31 @@ async function handler(req, res) {
         include: { inventory: true }
       });
 
+      const ownedItems = user.inventory.map(inv => {
+        const catalogItem = SHOP_CATALOG[inv.itemId];
+        if (catalogItem) {
+            return { 
+                id: inv.itemId, 
+                name: catalogItem.name, 
+                type: catalogItem.type 
+            };
+        }
+        return null;
+      }).filter(Boolean); 
+
+      const allMyItems = [...STARTER_ITEMS, ...ownedItems];
+
+      const categorizedInventory = {
+        TOP: allMyItems.filter(i => i.type === 'TOP'),
+        SHIRT: allMyItems.filter(i => i.type === 'SHIRT'),
+        PANTS: allMyItems.filter(i => i.type === 'PANTS'),
+        SHOES: allMyItems.filter(i => i.type === 'SHOES') 
+      };
+
       const responseData = {
         userProfile: {
-            name: `${user.firstName} ${user.lastName}`, 
-            avatarUrl: user.avatarUrl || "", 
+            name: `${user.firstName} ${user.lastName}`,
+            avatarUrl: user.avatarUrl || "",
         },
         equipped: {
             top: user.equippedTop,
@@ -27,12 +56,12 @@ async function handler(req, res) {
             coins: user.coinsBalance,
             streak: user.dayStreak
         },
-        inventory: user.inventory.map(i => i.itemId) 
+        inventory: categorizedInventory
       };
 
       return res.status(200).json(responseData);
     } catch (error) {
-      console.error(error);
+      console.error("Avatar Error:", error);
       return res.status(500).json({ error: 'Failed to fetch avatar data' });
     }
   }
@@ -54,7 +83,7 @@ async function handler(req, res) {
       if (category === 'TOP') updateData.equippedTop = itemId;
       else if (category === 'SHIRT') updateData.equippedShirt = itemId;
       else if (category === 'PANTS') updateData.equippedPants = itemId;
-      else if (category === 'SHOES') updateData.equippedShoes = itemId;
+      else if (category === 'SHOES' || category === 'BOTTOM') updateData.equippedShoes = itemId;
       else return res.status(400).json({ error: 'Invalid category' });
 
       await prisma.user.update({
